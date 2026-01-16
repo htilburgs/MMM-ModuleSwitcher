@@ -1,9 +1,9 @@
 Module.register("MMM-ModuleSwitcher", {
     defaults: {
-        moduleA: "MMM-Kermis",   // Module die je wilt verbergen
+        moduleA: "MMM-Kermis",    // Module die je wilt verbergen
         moduleB: "MMM-OnSpotify", // Module die de trigger is
         checkInterval: 500,       // Polling interval in ms
-        animationSpeed: 500       // Fade snelheid in ms
+        animationSpeed: 500       // Fade snelheid
     },
 
     start() {
@@ -17,7 +17,6 @@ Module.register("MMM-ModuleSwitcher", {
     checkModuleBState() {
         const modules = MM.getModules();
 
-        // Vind modules als ze nog niet zijn ingesteld
         if (!this.moduleA) {
             this.moduleA = modules.find(m => m.name === this.config.moduleA);
         }
@@ -34,56 +33,41 @@ Module.register("MMM-ModuleSwitcher", {
             return;
         }
 
-        // Alleen reageren op verandering
+        // Alleen reageren op status verandering
         if (currentState !== this.lastModuleBState) {
             this.lastModuleBState = currentState;
 
             if (currentState) {
-                // ModuleB actief → moduleA verbergen met spacer
-                this.hideModuleWithSpacer(this.moduleA);
+                this.hideModuleAbsolute(this.moduleA);
             } else {
-                // ModuleB inactief → moduleA weer tonen
-                this.showModuleWithSpacer(this.moduleA);
+                this.showModuleAbsolute(this.moduleA);
             }
         }
     },
 
-    hideModuleWithSpacer(module) {
+    hideModuleAbsolute(module) {
         if (!module || !module.container) return;
 
-        // Alleen één spacer maken
-        if (!module.spacer) {
-            const spacer = document.createElement("div");
-            const rect = module.container.getBoundingClientRect();
-            spacer.style.width = rect.width + "px";
-            spacer.style.height = rect.height + "px";
-            spacer.style.display = "inline-block";
-            module.container.parentNode.insertBefore(spacer, module.container);
-            module.spacer = spacer;
+        // Zorg dat module absoluut gepositioneerd wordt
+        const parentStyle = window.getComputedStyle(module.container.parentNode);
+        if (parentStyle.position === "static") {
+            module.container.parentNode.style.position = "relative";
         }
 
-        // Smooth fade-out
+        module.container.style.position = "absolute";
+        module.container.style.top = module.container.offsetTop + "px";
+        module.container.style.left = module.container.offsetLeft + "px";
         module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
         module.container.style.opacity = 0;
-
-        // Na fade, display none houden
-        setTimeout(() => {
-            module.container.style.display = "none";
-        }, this.config.animationSpeed);
+        module.container.style.pointerEvents = "none";
+        module.container.style.zIndex = 999; // boven andere modules
     },
 
-    showModuleWithSpacer(module) {
+    showModuleAbsolute(module) {
         if (!module || !module.container) return;
 
-        // Display terugzetten
-        module.container.style.display = "";
         module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
         module.container.style.opacity = 1;
-
-        // Spacer verwijderen
-        if (module.spacer) {
-            module.spacer.remove();
-            module.spacer = null;
-        }
+        module.container.style.pointerEvents = "auto";
     }
 });
