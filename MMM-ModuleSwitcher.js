@@ -1,18 +1,15 @@
 Module.register("MMM-ModuleSwitcher", {
     defaults: {
-        moduleA: "MMM-Kermis",
-        moduleB: "MMM-OnSpotify",
-        checkInterval: 500,       // Polling interval in ms
-        overlayColor: "#000000",  // kleur van de overlay (kan transparant)
-        overlayOpacity: 1.0       // 0 = volledig doorzichtig, 1 = volledig bedekt
+        moduleA: "MMM-Kermis",      // Module die tijdelijk verborgen moet worden
+        moduleB: "MMM-OnSpotify",   // Trigger module
+        checkInterval: 500,         // Polling interval in ms
+        animationSpeed: 500         // Fade snelheid
     },
 
     start() {
         this.moduleA = null;
         this.moduleB = null;
         this.lastModuleBState = undefined;
-
-        this.overlay = null; // overlay element
 
         setInterval(() => this.checkModuleBState(), this.config.checkInterval);
     },
@@ -27,7 +24,6 @@ Module.register("MMM-ModuleSwitcher", {
 
         const isActive = this.moduleB.hidden === false;
 
-        // eerste status opslaan
         if (this.lastModuleBState === undefined) {
             this.lastModuleBState = isActive;
             return;
@@ -37,46 +33,24 @@ Module.register("MMM-ModuleSwitcher", {
             this.lastModuleBState = isActive;
 
             if (isActive) {
-                this.showOverlay();
+                this.fadeOutModule(this.moduleA);
             } else {
-                this.hideOverlay();
+                this.fadeInModule(this.moduleA);
             }
         }
     },
 
-    showOverlay() {
-        if (!this.moduleA || !this.moduleA.container) return;
-
-        // Maak overlay als die nog niet bestaat
-        if (!this.overlay) {
-            const rect = this.moduleA.container.getBoundingClientRect();
-
-            const overlay = document.createElement("div");
-            overlay.style.position = "absolute";
-            overlay.style.top = 0;
-            overlay.style.left = 0;
-            overlay.style.width = "100%";
-            overlay.style.height = "100%";
-            overlay.style.backgroundColor = this.config.overlayColor;
-            overlay.style.opacity = this.config.overlayOpacity;
-            overlay.style.pointerEvents = "auto";
-            overlay.style.zIndex = 9999; // boven ModuleA
-
-            // Parent moet position relative zijn
-            const parent = this.moduleA.container;
-            if (window.getComputedStyle(parent).position === "static") {
-                parent.style.position = "relative";
-            }
-
-            parent.appendChild(overlay);
-            this.overlay = overlay;
-        }
+    fadeOutModule(module) {
+        if (!module || !module.container) return;
+        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
+        module.container.style.opacity = 0;
+        module.container.style.pointerEvents = "none";
     },
 
-    hideOverlay() {
-        if (this.overlay) {
-            this.overlay.remove();
-            this.overlay = null;
-        }
+    fadeInModule(module) {
+        if (!module || !module.container) return;
+        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
+        module.container.style.opacity = 1;
+        module.container.style.pointerEvents = "auto";
     }
 });
