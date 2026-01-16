@@ -1,9 +1,8 @@
 Module.register("MMM-ModuleSwitcher", {
     defaults: {
-        moduleA: "MMM-Kermis",      // Module die tijdelijk verborgen moet worden
+        moduleA: "MMM-Kermis",      // Module die we willen verbergen/tonen
         moduleB: "MMM-OnSpotify",   // Trigger module
-        checkInterval: 500,         // Polling interval in ms
-        animationSpeed: 500         // Fade snelheid
+        checkInterval: 500          // Polling interval om moduleB actief te checken
     },
 
     start() {
@@ -11,6 +10,7 @@ Module.register("MMM-ModuleSwitcher", {
         this.moduleB = null;
         this.lastModuleBState = undefined;
 
+        // Polling
         setInterval(() => this.checkModuleBState(), this.config.checkInterval);
     },
 
@@ -29,28 +29,17 @@ Module.register("MMM-ModuleSwitcher", {
             return;
         }
 
+        // Alleen reageren bij statusverandering
         if (isActive !== this.lastModuleBState) {
             this.lastModuleBState = isActive;
 
             if (isActive) {
-                this.fadeOutModule(this.moduleA);
+                // Trigger moduleA om te verbergen
+                this.sendNotification("HIDE_KERMIS");
             } else {
-                this.fadeInModule(this.moduleA);
+                // Trigger moduleA om te tonen
+                this.sendNotification("SHOW_KERMIS");
             }
         }
-    },
-
-    fadeOutModule(module) {
-        if (!module || !module.container) return;
-        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
-        module.container.style.opacity = 0;
-        module.container.style.pointerEvents = "none";
-    },
-
-    fadeInModule(module) {
-        if (!module || !module.container) return;
-        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
-        module.container.style.opacity = 1;
-        module.container.style.pointerEvents = "auto";
     }
 });
