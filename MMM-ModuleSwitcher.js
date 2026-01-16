@@ -1,15 +1,18 @@
 Module.register("MMM-ModuleSwitcher", {
     defaults: {
-        moduleA: "MMM-Kermis",    // Module die tijdelijk verborgen moet worden
-        moduleB: "MMM-OnSpotify", // Trigger module
+        moduleA: "MMM-Kermis",
+        moduleB: "MMM-OnSpotify",
         checkInterval: 500,       // Polling interval in ms
-        animationSpeed: 500       // Fade snelheid in ms
+        overlayColor: "#000000",  // kleur van de overlay (kan transparant)
+        overlayOpacity: 1.0       // 0 = volledig doorzichtig, 1 = volledig bedekt
     },
 
     start() {
         this.moduleA = null;
         this.moduleB = null;
         this.lastModuleBState = undefined;
+
+        this.overlay = null; // overlay element
 
         setInterval(() => this.checkModuleBState(), this.config.checkInterval);
     },
@@ -24,6 +27,7 @@ Module.register("MMM-ModuleSwitcher", {
 
         const isActive = this.moduleB.hidden === false;
 
+        // eerste status opslaan
         if (this.lastModuleBState === undefined) {
             this.lastModuleBState = isActive;
             return;
@@ -33,42 +37,46 @@ Module.register("MMM-ModuleSwitcher", {
             this.lastModuleBState = isActive;
 
             if (isActive) {
-                this.hideModuleAbsolute(this.moduleA);
+                this.showOverlay();
             } else {
-                this.showModuleAbsolute(this.moduleA);
+                this.hideOverlay();
             }
         }
     },
 
-    hideModuleAbsolute(module) {
-        if (!module || !module.container) return;
+    showOverlay() {
+        if (!this.moduleA || !this.moduleA.container) return;
 
-        // Zorg dat de parent relatief gepositioneerd is
-        const parent = module.container.parentNode;
-        const parentStyle = window.getComputedStyle(parent);
-        if (parentStyle.position === "static") {
-            parent.style.position = "relative";
+        // Maak overlay als die nog niet bestaat
+        if (!this.overlay) {
+            const rect = this.moduleA.container.getBoundingClientRect();
+
+            const overlay = document.createElement("div");
+            overlay.style.position = "absolute";
+            overlay.style.top = 0;
+            overlay.style.left = 0;
+            overlay.style.width = "100%";
+            overlay.style.height = "100%";
+            overlay.style.backgroundColor = this.config.overlayColor;
+            overlay.style.opacity = this.config.overlayOpacity;
+            overlay.style.pointerEvents = "auto";
+            overlay.style.zIndex = 9999; // boven ModuleA
+
+            // Parent moet position relative zijn
+            const parent = this.moduleA.container;
+            if (window.getComputedStyle(parent).position === "static") {
+                parent.style.position = "relative";
+            }
+
+            parent.appendChild(overlay);
+            this.overlay = overlay;
         }
-
-        // Absolute positionering binnen de regio
-        const rect = module.container.getBoundingClientRect();
-        const offsetTop = module.container.offsetTop;
-        const offsetLeft = module.container.offsetLeft;
-
-        module.container.style.position = "absolute";
-        module.container.style.top = offsetTop + "px";
-        module.container.style.left = offsetLeft + "px";
-        module.container.style.zIndex = 999; // boven andere modules
-        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
-        module.container.style.opacity = 0;
-        module.container.style.pointerEvents = "none";
     },
 
-    showModuleAbsolute(module) {
-        if (!module || !module.container) return;
-
-        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
-        module.container.style.opacity = 1;
-        module.container.style.pointerEvents = "auto";
+    hideOverlay() {
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
+        }
     }
 });
