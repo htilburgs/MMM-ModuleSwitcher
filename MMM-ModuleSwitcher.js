@@ -1,16 +1,16 @@
 Module.register("MMM-ModuleSwitcher", {
     defaults: {
-        moduleA: "MMM-Kermis",      // Module die we willen verbergen
+        moduleA: "MMM-Kermis",      // Module die verborgen/tonen wordt
         moduleB: "MMM-OnSpotify",   // Trigger module
-        checkInterval: 500          // Polling interval
+        checkInterval: 500          // Polling interval om moduleB actief te checken
     },
 
     start() {
         this.moduleA = null;
         this.moduleB = null;
         this.lastModuleBState = undefined;
-        this.spacer = null;
 
+        // Polling om moduleB status te controleren
         setInterval(() => this.checkModuleBState(), this.config.checkInterval);
     },
 
@@ -24,59 +24,23 @@ Module.register("MMM-ModuleSwitcher", {
 
         const isActive = this.moduleB.hidden === false;
 
+        // Eerste keer initialiseren
         if (this.lastModuleBState === undefined) {
             this.lastModuleBState = isActive;
             return;
         }
 
+        // Alleen bij statusverandering notificatie sturen
         if (isActive !== this.lastModuleBState) {
             this.lastModuleBState = isActive;
 
             if (isActive) {
-                this.hideModuleWithSpacer(this.moduleA);
+                // ModuleB actief → ModuleA verbergen
+                this.sendNotification("HIDE_KERMIS");
             } else {
-                this.showModuleWithSpacer(this.moduleA);
+                // ModuleB inactief → ModuleA tonen
+                this.sendNotification("SHOW_KERMIS");
             }
-        }
-    },
-
-    hideModuleWithSpacer(module) {
-        if (!module || !module.container || module.spacer) return;
-
-        // Maak een spacer van dezelfde hoogte
-        const spacer = document.createElement("div");
-        const rect = module.container.getBoundingClientRect();
-        spacer.style.width = rect.width + "px";
-        spacer.style.height = rect.height + "px";
-        spacer.style.display = "block";
-
-        module.container.parentNode.insertBefore(spacer, module.container);
-        this.spacer = spacer;
-
-        // Verberg module via notificatie
-        if (typeof module.hideOnNotification === "function") {
-            module.hideOnNotification();
-        } else {
-            module.visible = false;
-            module.container.style.display = "none";
-        }
-    },
-
-    showModuleWithSpacer(module) {
-        if (!module || !module.container) return;
-
-        // Toon module via notificatie
-        if (typeof module.showOnNotification === "function") {
-            module.showOnNotification();
-        } else {
-            module.visible = true;
-            module.container.style.display = "";
-        }
-
-        // Verwijder spacer
-        if (this.spacer) {
-            this.spacer.remove();
-            this.spacer = null;
         }
     }
 });
