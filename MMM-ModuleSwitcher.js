@@ -1,4 +1,4 @@
-Module.register("MMM-SpotifySwitcher", {
+Module.register("MMM-ModuleSwitcher", {
     defaults: {
         moduleA: "MMM-Kermis",       // Module die je wilt verbergen
         spotifyModule: "MMM-OnSpotify",
