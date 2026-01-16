@@ -1,56 +1,43 @@
-Module.register("MMM-ModuleSwitcher", {
+Module.register("MMM-SpotifySwitcher", {
     defaults: {
-        moduleA: "MMM-ModuleA",
-        moduleB: "MMM-ModuleB",
-        checkInterval: 1000, // ms
+        moduleA: "MMM-Clock",
+        spotifyModule: "MMM-OnSpotify",
+        checkInterval: 500,
         animationSpeed: 500
     },
 
     start() {
-        Log.info("Starting module: " + this.name);
-        this.moduleAInstance = null;
-        this.moduleBVisible = false;
+        this.moduleA = null;
+        this.spotify = null;
+        this.spotifyActive = null;
 
-        setInterval(() => {
-            this.checkModules();
-        }, this.config.checkInterval);
+        setInterval(() => this.checkSpotifyState(), this.config.checkInterval);
     },
 
-    checkModules() {
+    checkSpotifyState() {
         const modules = MM.getModules();
 
-        // Zoek module A
-        if (!this.moduleAInstance) {
-            this.moduleAInstance = modules.find(m => m.name === this.config.moduleA);
+        if (!this.moduleA) {
+            this.moduleA = modules.find(m => m.name === this.config.moduleA);
         }
 
-        // Check of module B zichtbaar is
-        const moduleB = modules.find(m =>
-            m.name === this.config.moduleB && m.hidden === false
-        );
-
-        if (moduleB && !this.moduleBVisible) {
-            this.moduleBVisible = true;
-            this.hideModuleA();
+        if (!this.spotify) {
+            this.spotify = modules.find(m => m.name === this.config.spotifyModule);
         }
 
-        if (!moduleB && this.moduleBVisible) {
-            this.moduleBVisible = false;
-            this.showModuleA();
-        }
-    },
+        if (!this.moduleA || !this.spotify) return;
 
-    hideModuleA() {
-        if (this.moduleAInstance) {
-            Log.info("Hiding " + this.config.moduleA);
-            this.moduleAInstance.hide(this.config.animationSpeed);
-        }
-    },
+        const isActive = this.spotify.hidden === false;
 
-    showModuleA() {
-        if (this.moduleAInstance) {
-            Log.info("Showing " + this.config.moduleA);
-            this.moduleAInstance.show(this.config.animationSpeed);
+        // Alleen reageren op verandering
+        if (isActive !== this.spotifyActive) {
+            this.spotifyActive = isActive;
+
+            if (isActive) {
+                this.moduleA.hide(this.config.animationSpeed);
+            } else {
+                this.moduleA.show(this.config.animationSpeed);
+            }
         }
     }
 });
