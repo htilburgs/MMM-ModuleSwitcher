@@ -1,66 +1,89 @@
 Module.register("MMM-ModuleSwitcher", {
     defaults: {
-        moduleA: "MMM-Kermis",       // Module die je wilt verbergen
-        spotifyModule: "MMM-OnSpotify",
-        checkInterval: 500,          // Polling interval in ms
-        animationSpeed: 500          // Fade snelheid
+        moduleA: "MMM-Kermis",   // Module die je wilt verbergen
+        moduleB: "MMM-OnSpotify", // Module die de trigger is
+        checkInterval: 500,       // Polling interval in ms
+        animationSpeed: 500       // Fade snelheid in ms
     },
 
     start() {
         this.moduleA = null;
-        this.spotify = null;
-        this.lastSpotifyState = undefined;
+        this.moduleB = null;
+        this.lastModuleBState = undefined;
 
-        // Polling interval voor Spotify status
-        setInterval(() => this.checkSpotifyState(), this.config.checkInterval);
+        setInterval(() => this.checkModuleBState(), this.config.checkInterval);
     },
 
-    checkSpotifyState() {
+    checkModuleBState() {
         const modules = MM.getModules();
 
+        // Vind modules als ze nog niet zijn ingesteld
         if (!this.moduleA) {
             this.moduleA = modules.find(m => m.name === this.config.moduleA);
         }
-
-        if (!this.spotify) {
-            this.spotify = modules.find(m => m.name === this.config.spotifyModule);
+        if (!this.moduleB) {
+            this.moduleB = modules.find(m => m.name === this.config.moduleB);
         }
+        if (!this.moduleA || !this.moduleB || typeof this.moduleB.hidden !== "boolean") return;
 
-        if (!this.moduleA || !this.spotify || typeof this.spotify.hidden !== "boolean") return;
-
-        const currentState = this.spotify.hidden === false;
+        const currentState = this.moduleB.hidden === false;
 
         // Eerste geldige state opslaan zonder actie
-        if (this.lastSpotifyState === undefined) {
-            this.lastSpotifyState = currentState;
+        if (this.lastModuleBState === undefined) {
+            this.lastModuleBState = currentState;
             return;
         }
 
-        // Alleen reageren op echte verandering
-        if (currentState !== this.lastSpotifyState) {
-            this.lastSpotifyState = currentState;
+        // Alleen reageren op verandering
+        if (currentState !== this.lastModuleBState) {
+            this.lastModuleBState = currentState;
 
             if (currentState) {
-                // Spotify actief → moduleA visueel verbergen
-                this.fadeOutModule(this.moduleA, this.config.animationSpeed);
+                // ModuleB actief → moduleA verbergen met spacer
+                this.hideModuleWithSpacer(this.moduleA);
             } else {
-                // Spotify stopt → moduleA weer tonen
-                this.fadeInModule(this.moduleA, this.config.animationSpeed);
+                // ModuleB inactief → moduleA weer tonen
+                this.showModuleWithSpacer(this.moduleA);
             }
         }
     },
 
-    fadeOutModule(module, speed) {
+    hideModuleWithSpacer(module) {
         if (!module || !module.container) return;
-        module.container.style.transition = `opacity ${speed}ms`;
+
+        // Alleen één spacer maken
+        if (!module.spacer) {
+            const spacer = document.createElement("div");
+            const rect = module.container.getBoundingClientRect();
+            spacer.style.width = rect.width + "px";
+            spacer.style.height = rect.height + "px";
+            spacer.style.display = "inline-block";
+            module.container.parentNode.insertBefore(spacer, module.container);
+            module.spacer = spacer;
+        }
+
+        // Smooth fade-out
+        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
         module.container.style.opacity = 0;
-        module.container.style.pointerEvents = "none";
+
+        // Na fade, display none houden
+        setTimeout(() => {
+            module.container.style.display = "none";
+        }, this.config.animationSpeed);
     },
 
-    fadeInModule(module, speed) {
+    showModuleWithSpacer(module) {
         if (!module || !module.container) return;
-        module.container.style.transition = `opacity ${speed}ms`;
+
+        // Display terugzetten
+        module.container.style.display = "";
+        module.container.style.transition = `opacity ${this.config.animationSpeed}ms`;
         module.container.style.opacity = 1;
-        module.container.style.pointerEvents = "auto";
+
+        // Spacer verwijderen
+        if (module.spacer) {
+            module.spacer.remove();
+            module.spacer = null;
+        }
     }
 });
