@@ -10,7 +10,7 @@ Module.register("MMM-SpotifySwitcher", {
     start() {
         this.moduleA = null;
         this.spotify = null;
-        this.spotifyActive = null;
+        this.lastSpotifyState = undefined;
 
         setInterval(() => this.checkSpotifyState(), this.config.checkInterval);
     },
@@ -24,18 +24,31 @@ Module.register("MMM-SpotifySwitcher", {
         if (!this.spotify) {
             this.spotify = modules.find(m => m.name === this.config.spotifyModule);
         }
-        if (!this.moduleA || !this.spotify) return;
 
-        const isActive = this.spotify.hidden === false;
+        // Wacht tot beide modules echt bestaan én Spotify een status heeft
+        if (!this.moduleA || !this.spotify || typeof this.spotify.hidden !== "boolean") {
+            return;
+        }
 
-        if (isActive !== this.spotifyActive) {
-            this.spotifyActive = isActive;
+        const currentState = this.spotify.hidden === false;
 
-            if (isActive) {
+        // 🚨 BELANGRIJK: eerste geldige state alleen opslaan
+        if (this.lastSpotifyState === undefined) {
+            this.lastSpotifyState = currentState;
+            return;
+        }
+
+        // Alleen reageren op echte statusverandering
+        if (currentState !== this.lastSpotifyState) {
+            this.lastSpotifyState = currentState;
+
+            if (currentState) {
+                // Spotify wordt actief
                 this.moduleA.hide(this.config.animationSpeed, {
                     lockString: this.config.lockString
                 });
             } else {
+                // Spotify stopt
                 this.moduleA.show(this.config.animationSpeed, {
                     lockString: this.config.lockString
                 });
