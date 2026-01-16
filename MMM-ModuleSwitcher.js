@@ -1,10 +1,9 @@
 Module.register("MMM-SpotifySwitcher", {
     defaults: {
-        moduleA: "MMM-Clock",
+        moduleA: "MMM-Kermis",       // Module die je wilt verbergen
         spotifyModule: "MMM-OnSpotify",
-        checkInterval: 500,
-        animationSpeed: 500,
-        lockString: "SPOTIFY_ACTIVE"
+        checkInterval: 500,          // Polling interval in ms
+        animationSpeed: 500          // Fade snelheid
     },
 
     start() {
@@ -12,6 +11,7 @@ Module.register("MMM-SpotifySwitcher", {
         this.spotify = null;
         this.lastSpotifyState = undefined;
 
+        // Polling interval voor Spotify status
         setInterval(() => this.checkSpotifyState(), this.config.checkInterval);
     },
 
@@ -21,38 +21,46 @@ Module.register("MMM-SpotifySwitcher", {
         if (!this.moduleA) {
             this.moduleA = modules.find(m => m.name === this.config.moduleA);
         }
+
         if (!this.spotify) {
             this.spotify = modules.find(m => m.name === this.config.spotifyModule);
         }
 
-        // Wacht tot beide modules echt bestaan én Spotify een status heeft
-        if (!this.moduleA || !this.spotify || typeof this.spotify.hidden !== "boolean") {
-            return;
-        }
+        if (!this.moduleA || !this.spotify || typeof this.spotify.hidden !== "boolean") return;
 
         const currentState = this.spotify.hidden === false;
 
-        // 🚨 BELANGRIJK: eerste geldige state alleen opslaan
+        // Eerste geldige state opslaan zonder actie
         if (this.lastSpotifyState === undefined) {
             this.lastSpotifyState = currentState;
             return;
         }
 
-        // Alleen reageren op echte statusverandering
+        // Alleen reageren op echte verandering
         if (currentState !== this.lastSpotifyState) {
             this.lastSpotifyState = currentState;
 
             if (currentState) {
-                // Spotify wordt actief
-                this.moduleA.hide(this.config.animationSpeed, {
-                    lockString: this.config.lockString
-                });
+                // Spotify actief → moduleA visueel verbergen
+                this.fadeOutModule(this.moduleA, this.config.animationSpeed);
             } else {
-                // Spotify stopt
-                this.moduleA.show(this.config.animationSpeed, {
-                    lockString: this.config.lockString
-                });
+                // Spotify stopt → moduleA weer tonen
+                this.fadeInModule(this.moduleA, this.config.animationSpeed);
             }
         }
+    },
+
+    fadeOutModule(module, speed) {
+        if (!module || !module.container) return;
+        module.container.style.transition = `opacity ${speed}ms`;
+        module.container.style.opacity = 0;
+        module.container.style.pointerEvents = "none";
+    },
+
+    fadeInModule(module, speed) {
+        if (!module || !module.container) return;
+        module.container.style.transition = `opacity ${speed}ms`;
+        module.container.style.opacity = 1;
+        module.container.style.pointerEvents = "auto";
     }
 });
